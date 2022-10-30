@@ -60,7 +60,7 @@
       const video = document.getElementById('video');
       const camera = new Camera(video, {
         onFrame: async () => {
-          await pose.send({image: videoElement});
+          await pose.send({image: video});
         },
         width: 640,
         height: 480
