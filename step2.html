@@ -8,7 +8,7 @@
   <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
 </head>
 <body>
-  <div id="video"></div>
+  <div id="video" width=1280 height=720>Video stream not available.</div>
   <ons-button onclick="popup()">Click Me</ons-button>
   <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia">เอกสาร</a>
   <script>
@@ -24,7 +24,7 @@
 
     navigator.mediaDevices.getUserMedia(constraints)
       .then((mediaStream) => {
-        const video = document.querySelector('div.video');
+        const video = document.getElementById('video');
         video.srcObject = mediaStream;
         video.onloadedmetadata = () => {
           video.play();
