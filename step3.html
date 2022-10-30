@@ -14,6 +14,9 @@
   <div class="camera">
     <video id="video">Video stream not available.</video>
   </div>
+  <div class="output">
+    <canvas id="canvas" width=640 height=480></canvas>
+  </div>
   <ons-button onclick="popup()">Click Me</ons-button>
   <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia">การใช้กล้อง</a>
   <a href="https://lintangwisesa.github.io/MediaPipe-in-JavaScript/pose.html">ตัวอย่าง MediaPipe</a>
@@ -22,7 +25,16 @@
       alert('Hello World!');
     }
     
-    // Prefer camera resolution nearest to 1280x720.
+    function onResultsPose() {
+      const canvas = document.getElementById('canvas');
+      const canvasCtx = canvas.getContext('2d');
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+      canvasCtx.restore();   
+    }
+    
+    // Prefer camera resolution nearest to 640x480.
     function startup() {
       const constraints = {
         audio: false,
@@ -41,6 +53,11 @@
           // always check for errors at the end.
           console.error(`${err.name}: ${err.message}`);
         });
+      
+      const pose = new Pose({locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+      }});
+      pose.onResults(onResultsPose);
     }
     // start
     window.addEventListener("load", startup, false);
