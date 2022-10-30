@@ -13,8 +13,6 @@
 <body>
   <div class="camera">
     <video id="video">Video stream not available.</video>
-  </div>
-  <div class="output">
     <canvas id="canvas" width=640 height=480></canvas>
   </div>
   <ons-button onclick="popup()">Click Me</ons-button>
@@ -26,7 +24,7 @@
       alert('Hello World!');
     }
     
-    function onResultsPose() {
+    function onResultsPose(results) {
       const canvas = document.getElementById('canvas');
       const canvasCtx = canvas.getContext('2d');
       canvasCtx.save();
