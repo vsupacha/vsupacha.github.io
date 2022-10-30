@@ -41,24 +41,6 @@
     
     // Prefer camera resolution nearest to 640x480.
     function startup() {
-      const constraints = {
-        audio: false,
-        video: { width: 640, height: 480 }
-      };
-
-      navigator.mediaDevices.getUserMedia(constraints)
-        .then((mediaStream) => {
-          const video = document.getElementById('video');
-          video.srcObject = mediaStream;
-          video.onloadedmetadata = () => {
-            video.play();
-          };
-        })
-        .catch((err) => {
-          // always check for errors at the end.
-          console.error(`${err.name}: ${err.message}`);
-        });
-      
       // MediaPipe code
       const pose = new Pose({locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
@@ -72,7 +54,19 @@
         minTrackingConfidence: 0.5
       });
       pose.onResults(onResultsPose);
+      
+      // Camera code
+      const video = document.getElementById('video');
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await pose.send({image: videoElement});
+        },
+        width: 640,
+        height: 720
+      });
+      camera.start();
     }
+   
     // start
     window.addEventListener("load", startup, false);
   </script>
