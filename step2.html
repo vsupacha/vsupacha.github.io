@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Demo VideoViewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+  <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+</head>
+<body>
+  <div id="video"></div>
+  <ons-button onclick="popup()">Click Me</ons-button>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia">เอกสาร</a>
+  <script>
+    function popup() {
+      alert('Hello World!');
+    }
+    
+    // Prefer camera resolution nearest to 1280x720.
+    const constraints = {
+      audio: false,
+      video: { width: 1280, height: 720 }
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then((mediaStream) => {
+        const video = document.querySelector('video');
+        video.srcObject = mediaStream;
+        video.onloadedmetadata = () => {
+          video.play();
+        };
+      })
+    .catch((err) => {
+      // always check for errors at the end.
+      console.error(`${err.name}: ${err.message}`);
+    });
+    
+  </script>
+</body>
+</html>
