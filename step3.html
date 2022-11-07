@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face/face.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
 </head>
 <body>
   <div class="camera">
@@ -42,8 +42,8 @@
     // Prefer camera resolution nearest to 640x480.
     function startup() {
       // MediaPipe code
-      const face = new Face({locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face/${file}`;
+      const faceDetection = new FaceDetection({locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/${file}`;
       }});
       pose.setOptions({
         modelComplexity: 1,
