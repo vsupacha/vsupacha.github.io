@@ -48,12 +48,8 @@
         return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`;
       }});
       faceDetection.setOptions({
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        enableSegmentation: true,
-        smoothSegmentation: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
+        modelSelection: 0,
+        minDetectionConfidence: 0.5
       });
       faceDetection.onResults(onResults);
       
