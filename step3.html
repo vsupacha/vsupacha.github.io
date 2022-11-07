@@ -45,7 +45,7 @@
     function startup() {
       // MediaPipe code
       const faceDetection = new FaceDetection({locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/${file}`;
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`;
       }});
       faceDetection.setOptions({
         modelComplexity: 1,
