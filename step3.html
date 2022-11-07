@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/face_detection.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
 <body>
   <div class="camera">
     <video id="video">Video stream not available.</video>
@@ -44,7 +44,7 @@
     function startup() {
       // MediaPipe code
       const faceDetection = new FaceDetection({locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/${file}`;
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`;
       }});
       faceDetection.setOptions({
         modelSelection: 0,
