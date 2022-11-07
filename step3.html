@@ -35,7 +35,8 @@
         if (results.detections.length > 0) {
           drawingUtils.drawRectangle(canvasCtx, results.detections[0].boundingBox, {color: 'blue', lineWidth: 4, fillColor: '#00000000'});
           drawingUtils.drawLandmarks(canvasCtx, results.detections[0].landmarks, {color: 'red', radius: 5,});
-        console.log(results.poseLandmarks);
+          console.log(results.detections);
+        }
       }
       canvasCtx.restore();   
     }
@@ -46,7 +47,7 @@
       const faceDetection = new FaceDetection({locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/${file}`;
       }});
-      pose.setOptions({
+      faceDetection.setOptions({
         modelComplexity: 1,
         smoothLandmarks: true,
         enableSegmentation: true,
@@ -54,7 +55,7 @@
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
       });
-      face.onResults(onResultsFace);
+      faceDetection.onResults(onResultsFace);
       
       // Camera code
       const video = document.getElementById('video');
