@@ -24,16 +24,17 @@
       alert('Hello World!');
     }
     
-    function onResultsPose(results) {
+    function onResults(results) {
       const canvas = document.getElementById('canvas');
       const canvasCtx = canvas.getContext('2d');
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
       canvasCtx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-      if (results.poseLandmarks) {
+      if (results.detections) {
         canvasCtx.globalCompositeOperation = 'source-over';
-        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
-        drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
+        if (results.detections.length > 0) {
+          drawingUtils.drawRectangle(canvasCtx, results.detections[0].boundingBox, {color: 'blue', lineWidth: 4, fillColor: '#00000000'});
+          drawingUtils.drawLandmarks(canvasCtx, results.detections[0].landmarks, {color: 'red', radius: 5,});
         console.log(results.poseLandmarks);
       }
       canvasCtx.restore();   
@@ -59,7 +60,7 @@
       const video = document.getElementById('video');
       const camera = new Camera(video, {
         onFrame: async () => {
-          await pose.send({image: video});
+          await faceDetection.send({image: video});
         },
         width: 640,
         height: 480
