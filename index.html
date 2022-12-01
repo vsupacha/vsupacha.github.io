@@ -63,7 +63,7 @@
         onFrame: async () => {
           await faceDetection.send({image: video});
         },
-        facingMode: 'environment',
+        facingMode: 'user',
         width: 640,
         height: 480
       });
