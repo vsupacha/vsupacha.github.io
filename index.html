@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Demo VideoViewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+  <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/face_detection.js" crossorigin="anonymous"></script>
+<body>
+  <div class="camera">
+    <canvas id="canvas" width=640 height=480></canvas>
+    <video id="video">Video stream not available.</video>
+  </div>
+  <ons-button onclick="popup()">Click Me</ons-button>
+  <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia">การใช้กล้อง</a>
+  <a href="https://lintangwisesa.github.io/MediaPipe-in-JavaScript/pose.html">ตัวอย่าง MediaPipe</a>
+  <a href="https://google.github.io/mediapipe/solutions/pose.html">คู่มือ MediaPipe</a>
+  <script>
+    function popup() {
+      alert('Hello World!');
+    }
+    
+    function onResults(results) {
+      const canvas = document.getElementById('canvas');
+      const canvasCtx = canvas.getContext('2d');
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+      if (results.detections) {
+        canvasCtx.globalCompositeOperation = 'source-over';
+        if (results.detections.length > 0) {
+          drawRectangle(canvasCtx, results.detections[0].boundingBox, {color: 'blue', lineWidth: 4, fillColor: '#00000000'});
+          drawLandmarks(canvasCtx, results.detections[0].landmarks, {color: 'red', radius: 5,});
+          console.log(results.detections);
+        }
+      }
+      canvasCtx.restore();   
+    }
+    
+    // Prefer camera resolution nearest to 640x480.
+    function startup() {
+      // LINE code
+      liff.init({
+        liffId: '1657521434-wrjXjQz1', // Use own liffId
+        withLoginOnExternalBrowser: true, // Enable automatic login process
+      }).then(() => {
+        alert('LIFF ready');
+      });
+      // MediaPipe code
+      const faceDetection = new FaceDetection({locateFile: (file) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/${file}`;
+      }});
+      faceDetection.setOptions({
+        modelSelection: 0,
+        minDetectionConfidence: 0.5
+      });
+      faceDetection.onResults(onResults);
+      
+      // Camera code
+      const video = document.getElementById('video');
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await faceDetection.send({image: video});
+        },
+        facingMode: 'environment',
+        width: 640,
+        height: 480
+      });
+      camera.start();
+    }
+   
+    // start
+    window.addEventListener("load", startup, false);
+  </script>
+</body>
+</html>
