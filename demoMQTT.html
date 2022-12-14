@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Demo VideoViewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+  <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+  <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+<body>
+  <h1>MQTT data</h1>
+  <ul>
+    <li>Type: <div id="topic"></div></li>
+    <li>Temp: <div id="temp"></div></li>
+    <li>LDR: <div id="ldr"></div></li>
+  </ul>
+  <script>
+    // Create a client instance
+    client = new Paho.MQTT.Client("broker.hivemq.com", 8000, "demo-mqtt-clientId");
+
+    // set callback handlers
+    client.onConnectionLost = onConnectionLost;
+    client.onMessageArrived = onMessageArrived;
+
+    // connect the client
+    client.connect({onSuccess:onConnect});
+
+
+    // called when the client connects
+    function onConnect() {
+      // Once a connection has been made, make a subscription and send a message.
+      console.log("onConnect");
+      client.subscribe("le380/sensors/kidbright");
+      //message = new Paho.MQTT.Message("Hello");
+      //message.destinationName = "World";
+      //client.send(message);
+    }
+
+    // called when the client loses its connection
+    function onConnectionLost(responseObject) {
+      if (responseObject.errorCode !== 0) {
+        console.log("onConnectionLost:"+responseObject.errorMessage);
+      }
+    }
+
+    // called when a message arrives
+    function onMessageArrived(message) {
+      console.log("onMessageArrived:"+message.payloadString);
+      const data = JSON.parse(message.payloadString);
+      const topicVal = document.getElementById("topic");
+      topicVal.innerHTML = data.type;
+      const tempVal = document.getElementById("temp");
+      tempVal.innerHTML = data.temp;
+      const ldrVal = document.getElementById("ldr");
+      ldrVal.innerHTML = data.ldr;
+    }
+  </script>
+</body>
+</html>
