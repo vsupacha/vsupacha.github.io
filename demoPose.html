@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page Title</title>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <style>
+        .box-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .img-container {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="box-container">
+        <div class="img-container">
+            <canvas id="output_canvas"></canvas>
+            <video id="input_video"></video>
+        </div>
+        <div>
+            <ol id="landmark-list">
+            </ol>
+        </div>
+    </div>
+    <script>
+        var streaming = false;
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const landmarkList = document.getElementById('landmark-list');
+        var intvId = null;
+
+        function zColor(data) {
+            const z = clamp(data.from.z + 0.5, 0, 1);
+            return `rgba(0, ${255 * z}, ${255 * (1 - z)}, 1)`;
+        }
+
+        function onResults(results) {
+            if (!results.poseLandmarks) {
+                return;
+            }
+            //
+            landmarkList.innerHTML = '';
+            for (let i = 0; i < results.poseLandmarks.length; i++) {
+                const landmark = results.poseLandmarks[i];
+                const item = document.createElement('li');
+                item.innerText = `${landmark.x.toFixed(2)}, ${landmark.y.toFixed(2)}, ${landmark.z.toFixed(2)}`;
+                landmarkList.appendChild(item);
+            }
+
+            // console.log(results.poseLandmarks);
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            //canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+                color: (data) => {
+                    const x0 = canvasElement.width * data.from.x;
+                    const y0 = canvasElement.height * data.from.y;
+                    const x1 = canvasElement.width * data.to.x;
+                    const y1 = canvasElement.height * data.to.y;
+                    const z0 = clamp(data.from.z + 0.5, 0, 1);
+                    const z1 = clamp(data.to.z + 0.5, 0, 1);
+                    const gradient = canvasCtx.createLinearGradient(x0, y0, x1, y1);
+                    gradient.addColorStop(
+                        0, `rgba(0, ${255 * z0}, ${255 * (1 - z0)}, 1)`);
+                    gradient.addColorStop(
+                        1.0, `rgba(0, ${255 * z1}, ${255 * (1 - z1)}, 1)`);
+                    return gradient;
+                }
+            });
+            drawLandmarks(
+                canvasCtx,
+                Object.values(POSE_LANDMARKS_LEFT)
+                    .map(index => results.poseLandmarks[index]),
+                        {color: zColor, fillColor: '#FF0000'});
+            drawLandmarks(
+                canvasCtx,
+                Object.values(POSE_LANDMARKS_RIGHT)
+                    .map(index => results.poseLandmarks[index]),
+                        {color: zColor, fillColor: '#00FF00'});
+            drawLandmarks(
+                canvasCtx,
+                Object.values(POSE_LANDMARKS_NEUTRAL)
+                    .map(index => results.poseLandmarks[index]),
+                    {color: zColor, fillColor: '#AAAAAA'});
+            canvasCtx.restore();
+        }
+
+        // 
+        const pose = new Pose({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        }});
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: true,
+            smoothSegmentation: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        pose.onResults(onResults);
+
+        // 
+        navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+        }).then((stream) => {
+            videoElement.srcObject = stream;
+            videoElement.setAttribute("width", 640);
+            videoElement.setAttribute("height", 480);
+            videoElement.play();
+        });
+        videoElement.addEventListener("canplay",
+            (ev) => {
+                if (!streaming) {
+                    canvasElement.setAttribute("width", videoElement.videoWidth);
+                    canvasElement.setAttribute("height", videoElement.videoHeight);
+                    intvId = setInterval(() => {
+                        pose.send({image: videoElement});
+                    }, 100);
+                    streaming = true;
+                }
+            }, false
+        );
+
+        //
+        var mediaRecorder = null;
+        let chunks = [];
+        navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true
+        }).then((stream) => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start(5000);
+            console.log(mediaRecorder.state);
+            mediaRecorder.ondataavailable = (ev) => {
+                chunks.push(ev.data);
+                console.log('Got audio data')
+            };
+        });
+    </script>
+</body>
+</html>
