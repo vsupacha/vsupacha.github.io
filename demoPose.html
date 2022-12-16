@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
     <style>
+        H4 { text-align: right}
         .box-container {
             display: flex;
             flex-direction: row;
@@ -16,25 +17,56 @@
             display: flex;
             flex-direction: column;
         }
+        .control-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .landmark-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .button-style {
+            display: block;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
     <div class="box-container">
         <div class="img-container">
-            <canvas id="output_canvas"></canvas>
-            <video id="input_video"></video>
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+            <video id="input_video" width="640" height="480"></video>
         </div>
-        <div>
-            <ol id="landmark-list">
-            </ol>
+        <div class="control-container">
+            <div>
+                <input type="button" class="button-style" id="record-button" value="Record" onclick="startRecording()">
+            </div>
+            <div class="landmark-container">
+                <div>
+                    <h4>X</h4>
+                    <ol id="landmark-xlist">
+                    </ol>
+                </div>
+                <div>
+                    <h4>Y</h4>
+                    <ol id="landmark-ylist">
+                    </ol>
+                </div>            
+                <div>
+                    <h4>Z</h4>
+                    <ol id="landmark-zlist">
+                    </ol>
+                </div>    
+            </div>                
         </div>
     </div>
     <script>
-        var streaming = false;
         const videoElement = document.getElementById('input_video');
         const canvasElement = document.getElementById('output_canvas');
         const canvasCtx = canvasElement.getContext('2d');
-        const landmarkList = document.getElementById('landmark-list');
+        const landmarkXList = document.getElementById('landmark-xlist');
+        const landmarkYList = document.getElementById('landmark-ylist');
+        const landmarkZList = document.getElementById('landmark-zlist');
         var intvId = null;
 
         function zColor(data) {
@@ -42,17 +74,58 @@
             return `rgba(0, ${255 * z}, ${255 * (1 - z)}, 1)`;
         }
 
+        //
+        var recording = false;
+        const button = document.getElementById('record-button');
+        var dlyId = null;
+        var landmarkArray = [];
+        function startRecording() {
+            if (!recording) {
+                button.value = 'Recording';
+                dlyId = setTimeout(function() {
+                    recording = false;
+                    button.value = 'Record';
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    for (var i=0; i < 33; i++) {
+                        csvContent += `x${i},y${i},z${i},`;
+                    }
+                    csvContent += "\n";
+                    landmarkArray.forEach(function(landmark) {
+                        landmark.forEach(function(point) {
+                            csvContent += `${point.x},${point.y},${point.z},`;
+                        });
+                        csvContent += "\n";
+                    });
+                    var encodedUri = encodeURI(csvContent);
+                    window.open(encodedUri);
+                    landmarkArray = [];
+                }, 5000);
+                recording = true;
+            }
+        }
+
         function onResults(results) {
             if (!results.poseLandmarks) {
                 return;
             }
             //
-            landmarkList.innerHTML = '';
+            if (recording) {
+                landmarkArray.push(results.poseLandmarks);
+            }
+            landmarkXList.innerHTML = '';
+            landmarkYList.innerHTML = '';
+            landmarkZList.innerHTML = '';
             for (let i = 0; i < results.poseLandmarks.length; i++) {
                 const landmark = results.poseLandmarks[i];
-                const item = document.createElement('li');
-                item.innerText = `${landmark.x.toFixed(2)}, ${landmark.y.toFixed(2)}, ${landmark.z.toFixed(2)}`;
-                landmarkList.appendChild(item);
+                var itemX = document.createElement('li');
+                itemX.innerText = `${landmark.x.toFixed(2)}`;
+                landmarkXList.appendChild(itemX);
+                var itemY = document.createElement('li');
+                itemY.innerText = `${landmark.y.toFixed(2)}`;
+                landmarkYList.appendChild(itemY);
+                var itemZ = document.createElement('li');
+                itemZ.innerText = `${landmark.z.toFixed(2)}`;
+                landmarkZList.appendChild(itemZ);
             }
 
             // console.log(results.poseLandmarks);
@@ -108,7 +181,7 @@
         });
         pose.onResults(onResults);
 
-        // 
+        /*
         navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false
@@ -130,6 +203,15 @@
                 }
             }, false
         );
+        */
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({image: videoElement});
+            },
+            //width: 640,
+            //height: 480
+        });
+        camera.start();
 
         //
         var mediaRecorder = null;
