@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page Title</title>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.1/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/face_detection.js" crossorigin="anonymous"></script>
+    <style>
+        H4 { text-align: right}
+        .box-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .img-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .control-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .landmark-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .button-style {
+            display: block;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="box-container">
+        <div class="img-container">
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+            <video id="input_video" width="640" height="480"></video>
+        </div>
+        <div class="control-container">
+            <div>
+                <input type="button" class="button-style" id="record-button" value="Record" onclick="startRecording()">
+            </div>
+            <div class="landmark-container">
+                <div>
+                    <h4>X</h4>
+                    <ol id="landmark-xlist">
+                    </ol>
+                </div>
+                <div>
+                    <h4>Y</h4>
+                    <ol id="landmark-ylist">
+                    </ol>
+                </div>            
+                <div>
+                    <h4>Z</h4>
+                    <ol id="landmark-zlist">
+                    </ol>
+                </div>    
+            </div>                
+        </div>
+    </div>
+    <script>
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const landmarkXList = document.getElementById('landmark-xlist');
+        const landmarkYList = document.getElementById('landmark-ylist');
+        var intvId = null;
+
+        //
+        var recording = false;
+        const button = document.getElementById('record-button');
+        var dlyId = null;
+        var landmarkArray = [];
+        function startRecording() {
+            if (!recording) {
+                button.value = 'Recording';
+                dlyId = setTimeout(function() {
+                    recording = false;
+                    button.value = 'Record';
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    for (var i=0; i < 6; i++) {
+                        csvContent += `x${i},y${i},`;
+                    }
+                    csvContent += "\n";
+                    landmarkArray.forEach(function(landmark) {
+                        landmark.forEach(function(point) {
+                            csvContent += `${point.x},${point.y},`;
+                        });
+                        csvContent += "\n";
+                    });
+                    var encodedUri = encodeURI(csvContent);
+                    window.open(encodedUri);
+                    landmarkArray = [];
+                }, 10000);
+                recording = true;
+            }
+        }
+
+        function onResults(results) {
+            if (results.detections.length == 0) {
+                return;
+            }
+            //
+            if (recording) {
+                landmarkArray.push(results.detections[0].landmarks);
+            }
+            landmarkXList.innerHTML = '';
+            landmarkYList.innerHTML = '';
+            const face = results.detections[0];
+            for (let i = 0; i < face.landmarks.length; i++) {
+                const landmark = face.landmarks[i];
+                var itemX = document.createElement('li');
+                itemX.innerText = `${landmark.x.toFixed(2)}`;
+                landmarkXList.appendChild(itemX);
+                var itemY = document.createElement('li');
+                itemY.innerText = `${landmark.y.toFixed(2)}`;
+                landmarkYList.appendChild(itemY);
+            }
+            //
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            for (let i=0; i < results.detections.length; i++) {
+                const face = results.detections[i];
+                drawRectangle(
+                    canvasCtx, face.boundingBox,
+                    {color: 'blue', lineWidth: 4, fillColor: '#00000000'});
+                drawLandmarks(canvasCtx, face.landmarks, {
+                    color: 'red',
+                    radius: 5,
+                });
+            }
+            canvasCtx.restore();
+        }
+
+        // 
+        const faceDetection = new FaceDetection({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/${file}`;
+        }});
+        faceDetection.setOptions({
+            modelSelection: 0,
+            minDetectionConfidence: 0.5
+        });
+        faceDetection.onResults(onResults);
+
+        /*
+        navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+        }).then((stream) => {
+            videoElement.srcObject = stream;
+            videoElement.setAttribute("width", 640);
+            videoElement.setAttribute("height", 480);
+            videoElement.play();
+        });
+        videoElement.addEventListener("canplay",
+            (ev) => {
+                if (!streaming) {
+                    canvasElement.setAttribute("width", videoElement.videoWidth);
+                    canvasElement.setAttribute("height", videoElement.videoHeight);
+                    intvId = setInterval(() => {
+                        pose.send({image: videoElement});
+                    }, 100);
+                    streaming = true;
+                }
+            }, false
+        );
+        */
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await faceDetection.send({image: videoElement});
+            },
+            //width: 640,
+            //height: 480
+        });
+        camera.start();
+
+        //
+        var mediaRecorder = null;
+        let chunks = [];
+        navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true
+        }).then((stream) => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start(5000);
+            console.log(mediaRecorder.state);
+            mediaRecorder.ondataavailable = (ev) => {
+                chunks.push(ev.data);
+                console.log('Got audio data')
+            };
+        });
+    </script>
+</body>
+</html>
