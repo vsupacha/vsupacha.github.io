@@ -85,10 +85,14 @@
                     }
                     csvContent += "\n";
                     landmarkArray.forEach(function(landmark) {
-                        landmark.forEach(function(point) {
-                            csvContent += `${point.x},${point.y},`;
-                        });
-                        csvContent += "\n";
+                        try {
+                            landmark.forEach(function(point) {
+                                csvContent += `${point.x},${point.y},${point.z},`;
+                            });
+                            csvContent += "\n";
+                        } catch (error) {
+                            console.log(error);
+                        }
                     });
                     var encodedUri = encodeURI(csvContent);
                     window.open(encodedUri);
