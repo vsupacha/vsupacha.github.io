@@ -41,6 +41,10 @@
             <div>
                 <input type="button" class="button-style" id="record-button" value="Record" onclick="startRecording()">
             </div>
+            <div>
+                <label for="rec-period">Period (secs)</label>
+                <input type="range" min="10" max="600" value="60" class="slider" id="rec-period">
+            </div>
             <div class="landmark-container">
                 <div>
                     <h4>X</h4>
@@ -81,7 +85,8 @@
         var landmarkArray = [];
         function startRecording() {
             if (!recording) {
-                button.value = 'Recording';
+                const tout_val = parseInt( document.getElementById('rec-period').value );
+                button.value = 'Recording ' + tout_val + ' secs';
                 dlyId = setTimeout(function() {
                     recording = false;
                     button.value = 'Record';
@@ -91,15 +96,19 @@
                     }
                     csvContent += "\n";
                     landmarkArray.forEach(function(landmark) {
-                        landmark.forEach(function(point) {
-                            csvContent += `${point.x},${point.y},${point.z},`;
-                        });
-                        csvContent += "\n";
+                        try {
+                            landmark.forEach(function(point) {
+                                csvContent += `${point.x},${point.y},${point.z},`;
+                            });
+                            csvContent += "\n";
+                        } catch (error) {
+                            console.log(error);
+                        }
                     });
                     var encodedUri = encodeURI(csvContent);
                     window.open(encodedUri);
                     landmarkArray = [];
-                }, 10000);
+                }, tout_val*1000);
                 recording = true;
             }
         }
