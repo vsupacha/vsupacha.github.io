@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Workshop: Sakura program 2023</title>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js"></script>
+    <style>
+        H4 { text-align: right}
+        .box-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .img-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .control-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .landmark-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .button-style {
+            display: block;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="box-container">
+        <div class="img-container">
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+            <video id="input_video" width="640" height="480"></video>
+        </div>
+        <div class="control-container">
+            <div>
+                <label for="mqtt-broker">Broker:</label>
+                <input type="edit" class="button-style" id="mqtt-broker" value="broker.hivemq.com">
+            </div>
+            <div>
+                <label for="mqtt-topic">User:</label>
+                <input type="edit" class="button-style" id="mqtt-topic" value="Supachai">
+            </div>
+            <div>
+                <input type="button" class="button-style" id="mqtt-button" value="Connect" onclick="mqttConnect()">
+            </div>  
+            <div>
+                <label for="rec-period" id="rec-period-label">Period (5 secs)</label>
+                <input type="range" min="1" max="60" value="5" class="slider" id="rec-period" onchange="updatePeriod()">
+            </div>
+            <div>
+                <input type="button" class="button-style" id="record-button" value="Record" onclick="startRecord()">
+            </div>
+            <div class="landmark-container">
+                <div>
+                    <h4>X</h4>
+                    <ol id="landmark-xlist">
+                    </ol>
+                </div>
+                <div>
+                    <h4>Y</h4>
+                    <ol id="landmark-ylist">
+                    </ol>
+                </div>            
+                <div>
+                    <h4>Z</h4>
+                    <ol id="landmark-zlist">
+                    </ol>
+                </div>    
+            </div>                
+        </div>
+    </div>
+    <script>
+        // onscreen controls
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const mqttBroker = document.getElementById('mqtt-broker');
+        const mqttTopic = document.getElementById('mqtt-topic');
+        const mqttButton = document.getElementById('mqtt-button');
+        const recordPeriod = document.getElementById('rec-period');
+        const recordPeriodLabel = document.getElementById('rec-period-label');
+        const recordButton = document.getElementById('record-button');
+        const landmarkXList = document.getElementById('landmark-xlist');
+        const landmarkYList = document.getElementById('landmark-ylist');
+        const landmarkZList = document.getElementById('landmark-zlist');
+
+        // global variables
+        var connecting = false;
+        var mqttClient = null;
+        var recording = false;
+        var currentLandmark = null;
+        var t0 = 0;
+        var tstampArray = [];
+        var landmarkArray = [];
+
+        // start mediapipe pose estimation
+        const pose = new Pose({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        }});
+        pose.setOptions({
+            modelComplexity: 2,
+            smoothLandmarks: true,
+            enableSegmentation: true,
+            smoothSegmentation: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        pose.onResults(onMediapipeResults);
+        // create camera
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({image: videoElement});
+            },
+            //width: 640,
+            //height: 480
+        });
+        camera.start();
+
+        // callback function for MQTT connect
+        function onMqttConnect() {
+            console.log('MQTT connected');
+            connecting = true;
+            mqttClient.subscribe('meikei-spsm/' + mqttTopic.value + '/cmd');
+        }
+
+        // callback function for MQTT message
+        function onMqttMessage(msg) {
+            console.log("onMessageArrived: " + msg.payloadString);
+        }
+
+        // connect or publish to MQTT broker
+        function mqttConnect() {
+            if (!connecting) {
+                // connect to MQTT broker
+                mqttClient = new Paho.MQTT.Client(mqttBroker.value, 8884, mqttTopic.value);
+                mqttClient.onMessageArrived = onMqttMessage;
+                mqttClient.connect({onSuccess:onMqttConnect, useSSL:true});
+                mqttButton.value = 'Submit';
+            } else {
+                // convert landmark data to JSON object
+                var landmarkObj = {x:[], y:[], z:[]};
+                currentLandmark.forEach(function(point) {
+                    landmarkObj.x.push(point.x);
+                    landmarkObj.y.push(point.y);
+                    landmarkObj.z.push(point.z);
+                });
+                // publish to MQTT broker
+                var mqttMsg = new Paho.MQTT.Message(JSON.stringify(landmarkObj));
+                mqttMsg.destinationName = 'meikei-spsm/' + mqttTopic.value + '/data';
+                mqttClient.send(mqttMsg);
+            }
+        }
+
+        // callback function for update recording period
+        function updatePeriod() {
+            console.log('update period: ' + recordPeriod.value + ' secs');
+            const tout_val = recordPeriod.value;
+            recordPeriodLabel.innerHTML = 'Period (' + tout_val + ') secs';
+        }
+
+        // export data to CSV file
+        function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += 'timestamp,'
+            for (var i=0; i < 33; i++) {
+                csvContent += `x${i},y${i},z${i},`;
+            }
+            // ignore last ,
+            csvContent = csvContent.substring(0, csvContent.length-1);
+            csvContent += "\n";
+            for (var i = 0; i < tstampArray.length; i++) {
+                csvContent += `${tstampArray[i]},`;
+                var landmark = landmarkArray[i];
+                try {
+                    landmark.forEach(function(point) {
+                        csvContent += `${point.x},${point.y},${point.z},`;
+                    });
+                    csvContent = csvContent.substring(0, csvContent.length-1);
+                } catch (error) {
+                    console.log(error);
+                }
+                csvContent += "\n";
+            }
+            var encodedUri = encodeURI(csvContent);
+            window.open(encodedUri);
+            tstampArray = [];
+            landmarkArray = [];
+        }
+
+        // callback function for start recording
+        function startRecord() {
+            if (!recording) {
+                t0 = Date.now();
+                const tout_val = parseInt( recordPeriod.value );
+                recordButton.value = 'Recording ' + tout_val + ' secs';
+                // set timeout to stop recording
+                var intvId = setInterval(function() {
+                    var tout_now = recordButton.value;
+                    tout_now = parseInt( tout_now.split(' ')[1] );
+                    tout_now = tout_now - 1;
+                    if (tout_now > 0) {
+                        recordButton.value = 'Recording ' + tout_now + ' secs';
+                    } else {
+                        clearInterval(intvId);
+                        recording = false;
+                        recordButton.value = 'Record';
+                        exportCSV();
+                    }
+                }, 1000);
+                recording = true;
+            }
+        }
+
+        // convert color
+        function zColor(data) {
+            const z = clamp(data.from.z + 0.5, 0, 1);
+            return `rgba(0, ${255 * z}, ${255 * (1 - z)}, 1)`;
+        }
+
+        // callback function for updating landmark lists
+        function onMediapipeResults(results) {
+            if (!results.poseLandmarks) {
+                return;
+            }
+            currentLandmark = results.poseLandmarks;
+            // while recording, store timestamp and landmark data
+            if (recording) {
+                tstampArray.push(Date.now() - t0);
+                landmarkArray.push(results.poseLandmarks);
+            }
+            // update landmark lists
+            landmarkXList.innerHTML = '';
+            landmarkYList.innerHTML = '';
+            landmarkZList.innerHTML = '';
+            for (let i = 0; i < results.poseLandmarks.length; i++) {
+                const landmark = results.poseLandmarks[i];
+                var itemX = document.createElement('li');
+                itemX.innerText = `${landmark.x.toFixed(2)}`;
+                landmarkXList.appendChild(itemX);
+                var itemY = document.createElement('li');
+                itemY.innerText = `${landmark.y.toFixed(2)}`;
+                landmarkYList.appendChild(itemY);
+                var itemZ = document.createElement('li');
+                itemZ.innerText = `${landmark.z.toFixed(2)}`;
+                landmarkZList.appendChild(itemZ);
+            }
+            // preview landmarks on canvas
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            //canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+                color: (data) => {
+                    const x0 = canvasElement.width * data.from.x;
+                    const y0 = canvasElement.height * data.from.y;
+                    const x1 = canvasElement.width * data.to.x;
+                    const y1 = canvasElement.height * data.to.y;
+                    const z0 = clamp(data.from.z + 0.5, 0, 1);
+                    const z1 = clamp(data.to.z + 0.5, 0, 1);
+                    const gradient = canvasCtx.createLinearGradient(x0, y0, x1, y1);
+                    gradient.addColorStop(
+                        0, `rgba(0, ${255 * z0}, ${255 * (1 - z0)}, 1)`);
+                    gradient.addColorStop(
+                        1.0, `rgba(0, ${255 * z1}, ${255 * (1 - z1)}, 1)`);
+                    return gradient;
+                }
+            });
+            drawLandmarks(
+                canvasCtx,
+                Object.values(POSE_LANDMARKS_LEFT)
+                    .map(index => results.poseLandmarks[index]),
+                        {color: zColor, fillColor: '#FF0000'});
+            drawLandmarks(
+                canvasCtx,
+                Object.values(POSE_LANDMARKS_RIGHT)
+                    .map(index => results.poseLandmarks[index]),
+                        {color: zColor, fillColor: '#00FF00'});
+            drawLandmarks(
+                canvasCtx,
+                Object.values(POSE_LANDMARKS_NEUTRAL)
+                    .map(index => results.poseLandmarks[index]),
+                    {color: zColor, fillColor: '#AAAAAA'});
+            canvasCtx.restore();
+        }
+    </script>
+</body>
+</html>
