@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page Title</title>
+    <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+    <style>
+        H4 { text-align: right}
+        .box-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .img-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .control-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .landmark-container {
+            display: flex;
+            flex-direction: row;
+        }
+        .button-style {
+            display: block;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="box-container">
+        <div class="img-container">
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+            <video id="input_video" width="640" height="480"></video>
+        </div>
+        <div class="control-container">
+            <div>
+                <label for="user-name">Name (english)</label>
+                <input type="edit" value="" id="user-name">
+            </div>
+            <div>
+                <input type="button" class="button-style" id="connect-button" value="Connect" onclick="startConnecting()">
+            </div>
+            <div class="landmark-container">
+                <div>
+                    <h4>X</h4>
+                    <ol id="landmark-xlist">
+                    </ol>
+                </div>
+                <div>
+                    <h4>Y</h4>
+                    <ol id="landmark-ylist">
+                    </ol>
+                </div>            
+                <div>
+                    <h4>Z</h4>
+                    <ol id="landmark-zlist">
+                    </ol>
+                </div>    
+            </div>                
+        </div>
+    </div>
+    <script>
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const landmarkXList = document.getElementById('landmark-xlist');
+        const landmarkYList = document.getElementById('landmark-ylist');
+        const landmarkZList = document.getElementById('landmark-zlist');
+        var userName = document.getElementById('user-name');
+        var connectButton = document.getElementById('connect-button');
+        var connected = false;
+        var landmarkObj = {};
+        var intvId = null;
+
+        // MQTT callback functions 
+        function onConnect() {
+            console.log("onConnect: success");
+            connected = true;
+            connectButton.value = "Ready";
+        }
+
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("onConnectionLost:"+responseObject.errorMessage);
+            }
+        }
+
+        function onMessageArrived(message) {
+            console.log("onMessageArrived:"+message.payloadString);
+        }
+
+        //
+        function startConnecting() {
+            if (!connected) {
+                if (userName.value == '') {
+                    alert('Please enter your name');
+                    return;
+                }
+                client = new Paho.MQTT.Client("broker.hivemq.com", 8884, "demo-mqtt-" + userName.value);
+                // set callback handlers
+                client.onConnectionLost = onConnectionLost;
+                client.onMessageArrived = onMessageArrived;
+
+                // connect the client
+                client.connect({onSuccess:onConnect, useSSL:true});
+            
+                intvId = setInterval(function() {
+                    if (connected) {
+                        if (Object.keys(landmarkObj).length == 0) {
+                            return;
+                        }
+                        client.send("TSE/welcome/"+userName.value, JSON.stringify(landmarkObj));
+                    }
+                }, 1000);
+            }
+        }
+
+        function onResults(results) {
+            if (!results.multiHandLandmarks) {
+                return;
+            }
+            landmarkXList.innerHTML = '';
+            landmarkYList.innerHTML = '';
+            landmarkZList.innerHTML = '';
+            landmarkObj = {};
+            for (const landmarks of results.multiHandLandmarks) {
+                for (let idx = 0; idx < landmarks.length; idx++) {
+                    const landmark = landmarks[idx];
+                    var itemX = document.createElement('li');
+                    itemX.innerText = `${landmark.x.toFixed(2)}`;
+                    landmarkXList.appendChild(itemX);
+                    var itemY = document.createElement('li');
+                    itemY.innerText = `${landmark.y.toFixed(2)}`;
+                    landmarkYList.appendChild(itemY);
+                    var itemZ = document.createElement('li');
+                    itemZ.innerText = `${landmark.z.toFixed(2)}`;
+                    landmarkZList.appendChild(itemZ);
+                    switch(idx) {
+                        case 0:
+                            landmarkObj.Wrist = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 1:
+                            landmarkObj.ThumbCMC = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 2:
+                            landmarkObj.ThumbMCP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 3:
+                            landmarkObj.ThumbIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 4:
+                            landmarkObj.ThumbTIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 5:
+                            landmarkObj.IndexFinMCP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 6:
+                            landmarkObj.IndexFinPIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 7:
+                            landmarkObj.IndexFinDIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 8:
+                            landmarkObj.IndexFinTIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 9:
+                            landmarkObj.MiddleFinMCP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 10:
+                            landmarkObj.MiddleFinPIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 11:
+                            landmarkObj.MiddleFinDIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 12:
+                            landmarkObj.MiddleFinTIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 13:
+                            landmarkObj.RingFinMCP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 14:
+                            landmarkObj.RingFinPIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 15:
+                            landmarkObj.RingFinDIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 16:
+                            landmarkObj.RingFinTIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 17:
+                            landmarkObj.PinkyMCP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 18:
+                            landmarkObj.PinkyPIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 19:
+                            landmarkObj.PinkyDIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                        case 20:
+                            landmarkObj.PinkyTIP = {x:landmark.x, y:landmark.y, z:landmark.z};
+                            break;
+                    }
+                }
+            }
+            //
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            for (const landmarks of results.multiHandLandmarks) {
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+                    {color: '#00FF00', lineWidth: 5});
+                drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2});
+            }
+            canvasCtx.restore();
+        }
+
+        // 
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        hands.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            //width: 640,
+            //height: 480
+        });
+        camera.start();
+    </script>
+</body>
+</html>
