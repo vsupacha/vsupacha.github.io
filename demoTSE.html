@@ -33,7 +33,7 @@
     </style>
 </head>
 <body>
-    <h1>ค่ายเหลาดินสอ TSE TU 2023</h1>
+    <h1>สาธิตนวัตกรรมกีฬา สหเวชศาสตร์ 2023</h1>
     <div class="box-container">
         <div class="img-container">
             <canvas id="output_canvas" width="640" height="480"></canvas>
@@ -116,7 +116,7 @@
                         if (Object.keys(landmarkObj).length == 0) {
                             return;
                         }
-                        client.send("TSE/welcome/"+userName.value, JSON.stringify(landmarkObj));
+                        client.send("ahs_inno_day/vsupacha/"+userName.value, JSON.stringify(landmarkObj));
                     }
                 }, 1000);
             }
