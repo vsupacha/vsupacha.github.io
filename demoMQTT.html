@@ -29,7 +29,7 @@
     function onConnect() {
       // Once a connection has been made, make a subscription and send a message.
       console.log("onConnect");
-      client.subscribe("le380/sensors/kidbright");
+      client.subscribe("TU/Algometer/data");
       //message = new Paho.MQTT.Message("Hello");
       //message.destinationName = "World";
       //client.send(message);
@@ -46,12 +46,13 @@
     function onMessageArrived(message) {
       console.log("onMessageArrived:"+message.payloadString);
       const data = JSON.parse(message.payloadString);
-      const topicVal = document.getElementById("topic");
-      topicVal.innerHTML = data.type;
-      const tempVal = document.getElementById("temp");
-      tempVal.innerHTML = data.temp;
-      const ldrVal = document.getElementById("ldr");
-      ldrVal.innerHTML = data.ldr;
+      console.log(data);
+      // const topicVal = document.getElementById("topic");
+      // topicVal.innerHTML = data.type;
+      // const tempVal = document.getElementById("temp");
+      // tempVal.innerHTML = data.temp;
+      // const ldrVal = document.getElementById("ldr");
+      // ldrVal.innerHTML = data.ldr;
     }
   </script>
 </body>
