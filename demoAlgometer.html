@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo VideoViewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+    <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+    <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+    <style>
+        table {
+            border: 1px solid blue;
+        }
+        td {
+            border: 1px solid blue;
+            width: 20%;
+        }
+    </style>
+<body>
+    <ons-navigator swipeable id="myNavigator" page="page1.html"></ons-navigator>
+
+    <template id="page1.html">
+        <ons-page id="page1">
+            <ons-toolbar>
+                <div class="center">Page 1</div>
+            </ons-toolbar>
+
+            <ons-button id="export-button">Export</ons-button>
+            <div id="chart-area" style="width:100%; height:400px;">Plot area</div>
+            <table id="data-area"></table>
+
+
+        </ons-page>
+    </template>
+
+    <template id="page2.html">
+        <ons-page id="page2">
+            <ons-toolbar>
+                <div class="left"><ons-back-button>Page 1</ons-back-button></div>
+                <div class="center"></div>
+            </ons-toolbar>
+
+            <p>This is the second page.</p>
+        </ons-page>
+    </template>
+
+    <script>
+        ons.ready(function() {
+            console.log("Onsen UI is ready!");
+            var json_data = null;
+
+            document.getElementById('export-button').onclick = function() {
+                //document.querySelector('#myNavigator').pushPage('page2.html');
+                console.log("Export button clicked");
+                if (json_data == null) {
+                    console.log("No data to export");
+                    return;
+                }
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Timestamp,Force\n";
+                for (var i = 0; i < json_data.timestamp.length; i++) {
+                    csvContent += json_data.timestamp[i] + "," + json_data.value[i] + "\n";
+                }
+                var encodedUri = encodeURI(csvContent);
+                window.open(encodedUri);
+            };
+
+            // Create a client instance and callback handlers
+            mqttClient = new Paho.MQTT.Client("broker.hivemq.com", 8884, "demo-mqtt-clientId");
+            mqttClient.onConnectionLost = onConnectionLost;
+            mqttClient.onMessageArrived = onMessageArrived;
+
+            // connect the client
+            mqttClient.connect({onSuccess:onConnect, useSSL:true});
+
+            // called when the client connects
+            function onConnect() {
+                // Once a connection has been made, make a subscription and send a message.
+                console.log("onConnect");
+                mqttClient.subscribe("TU/algometer/data");
+
+            }
+
+            // called when the client loses its connection
+            function onConnectionLost(responseObject) {
+                if (responseObject.errorCode !== 0) {
+                    console.log("onConnectionLost:"+responseObject.errorMessage);
+                }
+            }
+
+            // called when a message arrives
+            function onMessageArrived(message) {
+                console.log("onMessageArrived:"+message.payloadString);
+                json_data = JSON.parse(message.payloadString);
+
+                // plot the data
+                var force_data = [];
+                for (var i = 0; i < json_data.timestamp.length; i++) {
+                    force_data.push([json_data.timestamp[i], json_data.value[i]]);
+                }
+                const chart = Highcharts.chart('chart-area', {
+                    title: {
+                        text: 'Measured force'
+                    },
+                    xAxis: {
+                        title: {
+                            text: 'Time (sec)'
+                        }
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Newton'
+                        }
+                    },
+                    series: [
+                        {
+                            name: 'data',
+                            data: force_data
+                        } 
+                    ]
+                });
+
+                // populate table
+                var table = document.getElementById("data-area");
+                table.innerHTML = "";
+                for (var i = 0; i < json_data.timestamp.length; i++) {
+                    var row = table.insertRow(i);
+                    var cell1 = row.insertCell(0);
+                    var cell2 = row.insertCell(1);
+                    cell1.innerHTML = json_data.timestamp[i];
+                    cell2.innerHTML = json_data.value[i];
+                }
+                var header = table.createTHead();
+                var row = header.insertRow(0);
+                var cell1 = row.insertCell(0);
+                var cell2 = row.insertCell(1);
+                cell1.innerHTML = "<b>Timestamp</b>";
+                cell2.innerHTML = "<b>Force (N)</b>";
+            }
+        });
+        </script>
+</body>
