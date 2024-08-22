@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo VideoViewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsenui.css">
+    <link rel="stylesheet" href="https://unpkg.com/onsenui/css/onsen-css-components.min.css">
+    <script src="https://unpkg.com/onsenui/js/onsenui.min.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+    <style>
+        table {
+            border: 1px solid blue;
+        }
+        td {
+            border: 1px solid blue;
+            width: 20%;
+        }
+    </style>
+<body>
+    <ons-navigator swipeable id="myNavigator" page="page1.html"></ons-navigator>
+
+    <template id="page1.html">
+        <ons-page id="page1">
+            <ons-toolbar>
+                <div class="center">Page 1</div>
+            </ons-toolbar>
+            <ons-button id="connect-button">เชื่อมต่อ</ons-button>
+            <br>
+            <ons-button id="grasp-button">ฝึกกำ</ons-button>
+            <br>
+            <ons-button id="grasp-button">ฝึกกำ</ons-button>
+            <br>
+            <ons-button id="reset-button">ปล่อย</ons-button>
+
+        </ons-page>
+    </template>
+    <script>
+        ons.ready(function() {
+            console.log("Onsen UI is ready!");
+
+            if ("serial" in navigator) {
+                console.log("The Web Serial API is supported.");
+                document.getElementById('connect-button').addEventListener('click', async () => {
+                    // Prompt user to select any serial port.
+                    const port = await navigator.serial.requestPort();
+                    await port.open({ baudRate: 9600 });
+                    console.log("Port opened:", port);
+                    while (port.readable) {
+                        try {
+                            const reader = port.readable.getReader();
+                        } catch (error) {
+                            console.log("Error reading:", error);
+                            await reader.releaseLock();
+                        }
+
+                        try {
+                            while (true) {
+                                const { value, done } = await reader.read();
+                                if (done) {
+                                    // Allow the serial port to be closed later.
+                                    reader.releaseLock();
+                                    break;
+                                }
+                                if (value) {
+                                    console.log(value);
+                                }
+                            }
+                        } catch (error) {
+                            // TODO: Handle non-fatal read error.
+                            break;
+                        }
+                    }
+                    await port.close();
+                });
+            } else {
+                console.log("The Web Serial API is not supported.");
+            }
+
+        });
+    </script>
+</body>

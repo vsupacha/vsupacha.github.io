@@ -23,13 +23,17 @@
     <template id="page1.html">
         <ons-page id="page1">
             <ons-toolbar>
-                <div class="center">Page 1</div>
+                <div class="center">Algometer</div>
             </ons-toolbar>
 
+            <ons-button id="stop-button">Stop</ons-button>
+            <ons-button id="report-button">Report</ons-button>
+            <ons-button id="reset-button">Reset</ons-button>
             <ons-button id="export-button">Export</ons-button>
+
+
             <div id="chart-area" style="width:100%; height:400px;">Plot area</div>
             <table id="data-area"></table>
-
 
         </ons-page>
     </template>
@@ -50,24 +54,8 @@
             console.log("Onsen UI is ready!");
             var json_data = null;
 
-            document.getElementById('export-button').onclick = function() {
-                //document.querySelector('#myNavigator').pushPage('page2.html');
-                console.log("Export button clicked");
-                if (json_data == null) {
-                    console.log("No data to export");
-                    return;
-                }
-                let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "Timestamp,Force\n";
-                for (var i = 0; i < json_data.timestamp.length; i++) {
-                    csvContent += json_data.timestamp[i] + "," + json_data.value[i] + "\n";
-                }
-                var encodedUri = encodeURI(csvContent);
-                window.open(encodedUri);
-            };
-
             // Create a client instance and callback handlers
-            mqttClient = new Paho.MQTT.Client("broker.hivemq.com", 8884, "demo-mqtt-clientId");
+            var mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "demo-mqtt-clientId");
             mqttClient.onConnectionLost = onConnectionLost;
             mqttClient.onMessageArrived = onMessageArrived;
 
@@ -79,7 +67,6 @@
                 // Once a connection has been made, make a subscription and send a message.
                 console.log("onConnect");
                 mqttClient.subscribe("TU/algometer/data");
-
             }
 
             // called when the client loses its connection
@@ -137,6 +124,53 @@
                 var cell2 = row.insertCell(1);
                 cell1.innerHTML = "<b>Timestamp</b>";
                 cell2.innerHTML = "<b>Force (N)</b>";
+            }
+
+            document.getElementById('stop-button').onclick = function() {
+                const stop_cmd = { cmd: "stop" }; 
+                var message = new Paho.MQTT.Message(JSON.stringify(stop_cmd));
+                message.destinationName = "TU/algometer/cmd";
+                message.qos = 0;
+                mqttClient.send(message);
+                console.log("Sent STOP command");
+            };
+
+            document.getElementById('reset-button').onclick = function() {
+                const reset_cmd = { cmd: "reset" }; 
+                var message = new Paho.MQTT.Message(JSON.stringify(stop_cmd));
+                message.destinationName = "TU/algometer/cmd";
+                message.qos = 0;
+                mqttClient.send(message);
+                console.log("Sent RESET command");
+            };
+
+            document.getElementById('report-button').onclick = function() {
+                const report_cmd = { cmd: "report" }; 
+                var message = new Paho.MQTT.Message(JSON.stringify(report_cmd));
+                message.destinationName = "TU/algometer/cmd";
+                message.qos = 0;
+                mqttClient.send(message);
+                console.log("Sent REPORT command");
+            };
+
+            document.getElementById('export-button').onclick = function() {
+                //document.querySelector('#myNavigator').pushPage('page2.html');
+                console.log("Export button clicked");
+                if (json_data == null) {
+                    console.log("No data to export");
+                    return;
+                }
+                let csvContent = "data:text/csv;charset=utf-8,";
+                csvContent += "Timestamp,Force\n";
+                for (var i = 0; i < json_data.timestamp.length; i++) {
+                    csvContent += json_data.timestamp[i] + "," + json_data.value[i] + "\n";
+                }
+                var encodedUri = encodeURI(csvContent);
+                window.open(encodedUri);
+            };
+
+            document.getElementById('reset-button').onclick = function() {
+
             }
         });
         </script>
