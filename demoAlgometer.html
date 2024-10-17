@@ -56,7 +56,7 @@
             var json_data = null;
 
             // Create a client instance and callback handlers
-            var mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8884, "demo-mqtt-clientId");
+            var mqttClient = new Paho.MQTT.Client("broker.emqx.io", 8084, "demo-mqtt-clientId");
             mqttClient.onConnectionLost = onConnectionLost;
             mqttClient.onMessageArrived = onMessageArrived;
 
