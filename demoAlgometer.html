@@ -31,7 +31,7 @@
             <ons-button id="reset-button">Reset</ons-button>
             <ons-button id="export-button">Export</ons-button>
             
-            <div id="max_value">None</div>
+            <div id="max_value">Waiting for connect</div>
 
             <div id="chart-area" style="width:100%; height:400px;">Plot area</div>
             <table id="data-area"></table>
@@ -72,6 +72,7 @@
             function onConnect() {
                 // Once a connection has been made, make a subscription and send a message.
                 console.log(getTimestamp() + "onConnect");
+                document.getElementById("max_value").innerHTML = "Connection: OK";
                 mqttClient.subscribe("TU/algometer/data");
             }
 
@@ -80,6 +81,7 @@
                 if (responseObject.errorCode !== 0) {
                     console.log(getTimestamp() + "onConnectionLost:"+responseObject.errorMessage);
                 }
+                document.getElementById("max_value").innerHTML = "Connection lost";
             }
 
             // called when a message arrives
