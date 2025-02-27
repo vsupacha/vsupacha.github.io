@@ -98,15 +98,22 @@
                     landmarkArray.forEach(function(landmark) {
                         try {
                             landmark.forEach(function(point) {
-                                csvContent += `${point.x},${point.y},${point.z},`;
+                                csvContent += `${Number(point.x)},${Number(point.y)},${Number(point.z)},`;
+                                // csvContent += `${point.x},${point.y},${point.z},`;
                             });
                             csvContent += "\n";
                         } catch (error) {
                             console.log(error);
                         }
                     });
-                    var encodedUri = encodeURI(csvContent);
-                    window.open(encodedUri);
+                    //var encodedUri = encodeURI(csvContent);
+                    //window.open(encodedUri);
+                    var link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", "landmarks.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                     landmarkArray = [];
                 }, tout_val*1000);
                 recording = true;
