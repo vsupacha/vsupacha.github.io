@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepCounter - AI Pose Tracker</title>
+
+    <!-- MediaPipe Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Video Output Section -->
+        <div class="canvas-container">
+            <canvas id="output_canvas" width="640" height="480"></canvas>
+            <video id="input_video" width="640" height="480" style="display: none;"></video>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="controls-panel">
+            <h2>Control Panel</h2>
+
+            <div class="control-group">
+                <button id="record-button" class="btn">Start Recording</button>
+            </div>
+
+            <div class="control-group">
+                <label for="rec-period">Recording Period: <span id="period-value"
+                        style="color: white;">60s</span></label>
+                <input type="range" min="5" max="120" value="60" class="slider" id="rec-period">
+            </div>
+
+            <div class="control-group">
+                <label>Live Coordinates (X / Y / Z)</label>
+                <div class="landmarks-grid">
+                    <div class="landmark-column">
+                        <h4>Part</h4>
+                        <ol id="landmark-names-list" class="landmark-list"></ol>
+                    </div>
+                    <div class="landmark-column">
+                        <h4>X</h4>
+                        <ol id="landmark-xlist" class="landmark-list"></ol>
+                    </div>
+                    <div class="landmark-column">
+                        <h4>Y</h4>
+                        <ol id="landmark-ylist" class="landmark-list"></ol>
+                    </div>
+                    <div class="landmark-column">
+                        <h4>Z</h4>
+                        <ol id="landmark-zlist" class="landmark-list"></ol>
+                    </div>
+                    <div class="landmark-column">
+                        <h4>Visibility</h4>
+                        <ol id="landmark-vlist" class="landmark-list"></ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="script.js"></script>
+</body>
+
+</html>

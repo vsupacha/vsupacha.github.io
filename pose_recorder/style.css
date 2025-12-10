@@ -1,0 +1,172 @@
+:root {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+    --accent-color: #646cff;
+    --accent-hover: #535bf2;
+    --card-bg: #242424;
+    --border-radius: 12px;
+    --font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+.app-container {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    padding: 2rem;
+    max-width: 1280px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+    .app-container {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Video/Canvas Section */
+.canvas-container {
+    position: relative;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    background-color: #000;
+    min-width: 640px;
+    min-height: 480px;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* Controls Section */
+.controls-panel {
+    flex: 1;
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 300px;
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: var(--accent-color);
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+/* Button Styling */
+.btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    width: 100%;
+}
+
+.btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn.recording {
+    background-color: #ff4757;
+}
+
+.btn.recording:hover {
+    background-color: #ff6b81;
+}
+
+/* Slider Styling */
+input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+/* Landmarks Data Grid */
+.landmarks-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.landmark-column h4 {
+    text-align: center;
+    margin: 0 0 0.5rem 0;
+    color: #888;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.landmark-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+.landmark-list li {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Scrollbar for landmarks */
+.landmarks-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.landmarks-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.landmarks-grid::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
